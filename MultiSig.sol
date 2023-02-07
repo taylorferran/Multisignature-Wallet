@@ -6,16 +6,17 @@ pragma solidity 0.8.18;
 
 contract MultiSig {
 
-    mapping (address => uint256) public signatorieDetails;
+    mapping (address => uint256) public signatoryDetails;
     mapping (uint256 => transaction) public transactionMapping;
     mapping (address => mapping (uint256 => bool)) public isTransactionSigned;
+    mapping (address => bytes32) public addressPasswordHash;
 
     uint128 public numberOfSignatures;
     uint128 public numberOfTransactions;
 
-    struct signatorieListStruct {
-        address signatorieAddress;
-        uint128 signatorieRole;
+    struct signatoryListStruct {
+        address signatoryAddress;
+        uint128 signatoryRole;
     }
 
     struct transaction {
@@ -25,28 +26,31 @@ contract MultiSig {
         bool active;
     }
 
-    signatorieListStruct[] public signatorieList;
+    signatoryListStruct[] public signatoryList;
 
     /// @notice Check if an address is a member of the multisig
     modifier isAddressMemberOfMultisig() {
-        require(signatorieDetails[msg.sender] > 0, "Wallet not a member of this multi sig.");
+        require(signatoryDetails[msg.sender] > 0, "Wallet not a member of this multi sig.");
         _;
     }
 
-    constructor (signatorieListStruct[] memory _signatorieList, uint8 _numberOfSignatures) {
+    constructor (signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
 
-        for(uint256 i=0; i<_signatorieList.length; ++i) {
-            signatorieDetails[_signatorieList[i].signatorieAddress] = _signatorieList[i].signatorieRole;
-            signatorieList.push(_signatorieList[i]);
+        for(uint256 i=0; i<_signatoryList.length; ++i) {
+            signatoryDetails[_signatoryList[i].signatoryAddress] = _signatoryList[i].signatoryRole;
+            signatoryList.push(_signatoryList[i]);
         }
 
         numberOfSignatures = _numberOfSignatures;
     }
 
+    function deposit () public payable {
+
+    }
+
     function createTransaction(address _depositAddress, uint256 _amount) 
     public isAddressMemberOfMultisig() returns(uint128) {
 
-        // Create 
         transaction memory newTransaction = transaction(
             {
                 depositAddress : _depositAddress,
@@ -61,8 +65,8 @@ contract MultiSig {
         return(numberOfTransactions);
     }
 
-    function signTransaction(uint128 _transactionID) 
-    public isAddressMemberOfMultisig() {
+    function signTransaction(uint128 _transactionID)
+    public {
 
         require(transactionMapping[_transactionID].active, "Txn inactive");
         require(!isTransactionSigned[msg.sender][_transactionID], "Txn already signed by this address");
@@ -78,6 +82,18 @@ contract MultiSig {
         }
     }
 
+    function signTransactionWithKey(uint128 _transactionID) 
+    public isAddressMemberOfMultisig() {
+        signTransaction(_transactionID);
+    }
+
+    /// @notice Single use recovery function
+    function signTransactionWithPassword(uint128 _transactionID, address _account, string memory _password) 
+    public {
+        require(generatePasswordHash(_password) == addressPasswordHash[_account]);
+        signTransaction(_transactionID);
+    }
+
     function unsignTransaction(uint128 _transactionID) 
     public isAddressMemberOfMultisig(){
 
@@ -88,8 +104,19 @@ contract MultiSig {
 
     function cancelTransaction(uint128 _transactionID) 
     public isAddressMemberOfMultisig() {
-        require(signatorieDetails[msg.sender] <= 2);
+        require(signatoryDetails[msg.sender] <= 2);
         transactionMapping[_transactionID].active = false;
+    }
+
+    function assignPasswordHash(bytes32 _passwordHash) 
+    public isAddressMemberOfMultisig() {
+        addressPasswordHash[msg.sender] = _passwordHash;
+    }
+
+    /// @notice View functions
+
+    function generatePasswordHash(string memory _passwordHash) public pure returns(bytes32) {
+        return keccak256(abi.encodePacked(_passwordHash));
     }
 
     // Function to receive Ether. msg.data must be empty
