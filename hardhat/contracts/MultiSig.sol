@@ -13,31 +13,33 @@ error NotAdminAddress();
 
 contract MultiSig {
 
-    // Mapping to check if signatory is part of this multisig and what access level is is
+    /// @notice Mapping to check if signatory is part of this multisig and what access level is is
     mapping (address => uint256) public signatoryDetails;
-    // To store transaction details by a transaction id
+    /// @notice To store transaction details by a transaction id
     mapping (uint256 => TransactionStruct) public transactionMapping;
-    // To store which transactions have been signed by which address
+    /// @notice To store which transactions have been signed by which address
     mapping (address => mapping (uint256 => bool)) public isTransactionSigned;
-    // To store the hash of the password 
+    /// @notice To store the hash of the password 
     mapping (address => bytes32) public addressPasswordHash;
 
-    // Updatable number of signatures required for a transaction to process
+    /// @notice Updatable number of signatures required for a transaction to process
     uint128 public numberOfSignaturesRequired;
-    // Total number of transactions, used to assign a transaction id
+    /// @notice Total number of transactions, used to assign a transaction id
     uint128 public numberOfTransactions;
 
-    // Signatory list, used to keep track of who is on the list for viewing purposes
-    // This could be removed if we don't care for the front end. It doesn't affect funciontality.
+    /// @notice Signatory list, used to keep track of who is on the list for viewing purposes
+    /// @notice This could be removed if we don't care for the front end. It doesn't affect funciontality.
     SignatoryListStruct[] public signatoryList;
 
-    // Data type to store signatory details for the array.
+    /// @notice Data type to store signatory details for the array.
+    /// @dev uint96 used to pack the struct correctly
     struct SignatoryListStruct {
         address signatoryAddress;
         uint96 signatoryRole;
     }
 
-    // Data type to store transaction details
+    /// @notice Data type to store transaction details
+    /// @dev uint88 used to pack the struct correctly
     struct TransactionStruct {
         address depositAddress;
         uint88 signaturesRequired;
@@ -78,7 +80,7 @@ contract MultiSig {
         }
     }
 
-    /// @dev Ignore, used for testing mainly
+    /// @dev Ignore, used for testing
     function deposit () external payable {}
 
     /// @notice Any member can propose a transaction
