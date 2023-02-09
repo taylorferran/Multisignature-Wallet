@@ -1,12 +1,12 @@
 module.exports = [
     [{
-        signatoryAddress: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        signatoryAddress: "0xa8430797A27A652C03C46D5939a8e7698491BEd6",
         signatoryRole: 1,
     },{
-        signatoryAddress: "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",
+        signatoryAddress: "0x26fA48f0407DBa513d7AD474e95760794e5D698E",
         signatoryRole: 2,
     },{
-        signatoryAddress: "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+        signatoryAddress: "0xaf2D76acc5B0e496f924B08491444076219F2f35",
         signatoryRole: 3,
     }],
     2,

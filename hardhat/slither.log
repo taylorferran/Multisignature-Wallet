@@ -1,0 +1,89 @@
+SLITHER 
+
+
+MultiSig.addressPasswordHash (contracts/MultiSig.sol#36) is never initialized. It is used in:
+	- MultiSig.signTransactionWithPassword(uint128,address,string) (contracts/MultiSig.sol#124-128)
+	- MultiSig.assignPasswordHash(bytes32) (contracts/MultiSig.sol#169-178)
+MultiSig.numberOfSignaturesRequired (contracts/MultiSig.sol#39) is never initialized. It is used in:
+	- MultiSig.constructor(MultiSig.signatoryListStruct[],uint8) (contracts/MultiSig.sol#80-94)
+	- MultiSig.createTransaction(address,uint256) (contracts/MultiSig.sol#100-115)
+	- MultiSig.updateNumberOfSignaturesRequired(uint128) (contracts/MultiSig.sol#181-187)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-state-variables
+
+MultiSig.constructor(MultiSig.signatoryListStruct[],uint8) (contracts/MultiSig.sol#80-94) uses assembly
+	- INLINE ASM (contracts/MultiSig.sol#91-93)
+MultiSig.assignPasswordHash(bytes32) (contracts/MultiSig.sol#169-178) uses assembly
+	- INLINE ASM (contracts/MultiSig.sol#172-177)
+MultiSig.updateNumberOfSignaturesRequired(uint128) (contracts/MultiSig.sol#181-187) uses assembly
+	- INLINE ASM (contracts/MultiSig.sol#184-186)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+MultiSig.removeSignatory(address) (contracts/MultiSig.sol#209-222) has costly operations inside a loop:
+	- signatoryList.pop() (contracts/MultiSig.sol#215)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#costly-operations-inside-a-loop
+
+Pragma version0.8.17 (contracts/Factory.sol#2) necessitates a version too recent to be trusted. Consider deploying with 0.6.12/0.7.6/0.8.7
+Pragma version0.8.17 (contracts/MultiSig.sol#2) necessitates a version too recent to be trusted. Consider deploying with 0.6.12/0.7.6/0.8.7
+solc-0.8.17 is not recommended for deployment
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Low level call in MultiSig.signTransaction(uint128,address) (contracts/MultiSig.sol#133-149):
+	- (sent) = localTxn.depositAddress.call{value: localTxn.amount}() (contracts/MultiSig.sol#146)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Function Factory.CreateNewMultiSig(MultiSig.signatoryListStruct[],uint8) (contracts/Factory.sol#10-13) is not in mixedCase
+Parameter Factory.CreateNewMultiSig(MultiSig.signatoryListStruct[],uint8)._signatoryList (contracts/Factory.sol#10) is not in mixedCase
+Parameter Factory.CreateNewMultiSig(MultiSig.signatoryListStruct[],uint8)._numberOfSignatures (contracts/Factory.sol#10) is not in mixedCase
+Variable Factory.MultiSigArray (contracts/Factory.sol#8) is not in mixedCase
+Struct MultiSig.signatoryListStruct (contracts/MultiSig.sol#48-51) is not in CapWords
+Struct MultiSig.transactionStruct (contracts/MultiSig.sol#54-59) is not in CapWords
+Parameter MultiSig.createTransaction(address,uint256)._depositAddress (contracts/MultiSig.sol#100) is not in mixedCase
+Parameter MultiSig.createTransaction(address,uint256)._amount (contracts/MultiSig.sol#100) is not in mixedCase
+Parameter MultiSig.signTransactionWithKey(uint128)._transactionID (contracts/MultiSig.sol#118) is not in mixedCase
+Parameter MultiSig.signTransactionWithPassword(uint128,address,string)._transactionID (contracts/MultiSig.sol#124) is not in mixedCase
+Parameter MultiSig.signTransactionWithPassword(uint128,address,string)._signer (contracts/MultiSig.sol#124) is not in mixedCase
+Parameter MultiSig.signTransactionWithPassword(uint128,address,string)._password (contracts/MultiSig.sol#124) is not in mixedCase
+Parameter MultiSig.signTransaction(uint128,address)._transactionID (contracts/MultiSig.sol#133) is not in mixedCase
+Parameter MultiSig.signTransaction(uint128,address)._signer (contracts/MultiSig.sol#133) is not in mixedCase
+Parameter MultiSig.unsignTransaction(uint128)._transactionID (contracts/MultiSig.sol#152) is not in mixedCase
+Parameter MultiSig.cancelTransaction(uint128)._transactionID (contracts/MultiSig.sol#162) is not in mixedCase
+Parameter MultiSig.assignPasswordHash(bytes32)._passwordHash (contracts/MultiSig.sol#169) is not in mixedCase
+Parameter MultiSig.updateNumberOfSignaturesRequired(uint128)._numberOfSignaturesRequired (contracts/MultiSig.sol#181) is not in mixedCase
+Parameter MultiSig.addSignatory(address,uint96)._signatory (contracts/MultiSig.sol#191) is not in mixedCase
+Parameter MultiSig.addSignatory(address,uint96)._role (contracts/MultiSig.sol#191) is not in mixedCase
+Parameter MultiSig.removeSignatory(address)._signatory (contracts/MultiSig.sol#209) is not in mixedCase
+Parameter MultiSig.changeSignatoryRole(address,uint96)._signatory (contracts/MultiSig.sol#225) is not in mixedCase
+Parameter MultiSig.changeSignatoryRole(address,uint96)._role (contracts/MultiSig.sol#225) is not in mixedCase
+Parameter MultiSig.generatePasswordHash(string)._passwordHash (contracts/MultiSig.sol#232) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+MultiSig.numberOfSignaturesRequired (contracts/MultiSig.sol#39) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+
+CreateNewMultiSig(MultiSig.signatoryListStruct[],uint8) should be declared external:
+	- Factory.CreateNewMultiSig(MultiSig.signatoryListStruct[],uint8) (contracts/Factory.sol#10-13)
+deposit() should be declared external:
+	- MultiSig.deposit() (contracts/MultiSig.sol#97)
+createTransaction(address,uint256) should be declared external:
+	- MultiSig.createTransaction(address,uint256) (contracts/MultiSig.sol#100-115)
+signTransactionWithKey(uint128) should be declared external:
+	- MultiSig.signTransactionWithKey(uint128) (contracts/MultiSig.sol#118-121)
+signTransactionWithPassword(uint128,address,string) should be declared external:
+	- MultiSig.signTransactionWithPassword(uint128,address,string) (contracts/MultiSig.sol#124-128)
+unsignTransaction(uint128) should be declared external:
+	- MultiSig.unsignTransaction(uint128) (contracts/MultiSig.sol#152-158)
+cancelTransaction(uint128) should be declared external:
+	- MultiSig.cancelTransaction(uint128) (contracts/MultiSig.sol#162-166)
+assignPasswordHash(bytes32) should be declared external:
+	- MultiSig.assignPasswordHash(bytes32) (contracts/MultiSig.sol#169-178)
+updateNumberOfSignaturesRequired(uint128) should be declared external:
+	- MultiSig.updateNumberOfSignaturesRequired(uint128) (contracts/MultiSig.sol#181-187)
+addSignatory(address,uint96) should be declared external:
+	- MultiSig.addSignatory(address,uint96) (contracts/MultiSig.sol#191-206)
+removeSignatory(address) should be declared external:
+	- MultiSig.removeSignatory(address) (contracts/MultiSig.sol#209-222)
+changeSignatoryRole(address,uint96) should be declared external:
+	- MultiSig.changeSignatoryRole(address,uint96) (contracts/MultiSig.sol#225-228)
+viewAddresses() should be declared external:
+	- MultiSig.viewAddresses() (contracts/MultiSig.sol#236-238)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external

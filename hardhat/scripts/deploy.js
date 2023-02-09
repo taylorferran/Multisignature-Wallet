@@ -5,9 +5,9 @@ async function main() {
   const MultiSigContract = await ethers.getContractFactory("MultiSig");
 
   const deployedContract = await MultiSigContract.deploy([
-    ["0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",1],
-    ["0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",2],
-    ["0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",3]], 2);
+    ["0xa8430797A27A652C03C46D5939a8e7698491BEd6",1],
+    ["0x26fA48f0407DBa513d7AD474e95760794e5D698E",2],
+    ["0xaf2D76acc5B0e496f924B08491444076219F2f35",3]], 2);
 
   await deployedContract.deployed();
 

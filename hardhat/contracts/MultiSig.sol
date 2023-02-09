@@ -1,27 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-/*
-    @title Multisig wallet for the Openfort code challenge
+/**
+    @title Multisig wallet for the Openfort code assessment
     @author Taylor Ferran
+    @notice Made for a technical challenge, not released in production
+**/ 
 
-    Usually we would have documentation on something like notion, but I've just left 
-    some notes below so it's easier to read through before examining the actual code.
-
-        Functionality includes:
-        - Defining signatories, signatory roles and inital amount of signatures required. Done on contract creation.
-        - Create transactions if a signatory. Inserting the deposit address and deposit amount.
-        - Sign transactions if a signatory.
-        - Unsign transactions if a signatory.
-        - If transaction signatures reaches 0, transaction is sent out to the deposit address.
-        - Cancel transactions if the address calling it is signatory level two or below.
-        - Update number of signatures needed if the address calling it is signatory level one.
-        - Add a signatory if the address calling it is signatory level one.
-        - Remove a signatory if the address calling it is signatory level one.
-        - Assign a password hash to an address.
-        - Sign a transaction using the password for that address (for recovery purposes).
-*/
-
+/// @notice Custom error for when non admins try to call admin functions
+/// @dev In production we would include far more of these for gas purposes
 error NotAdminAddress();
 
 contract MultiSig {
@@ -58,8 +45,8 @@ contract MultiSig {
         uint256 amount;
     }
 
-
     /// @notice To check if an address is one of the signatories
+    /// @dev Anything above 0 is a valid multisig address
     modifier isAddressMemberOfMultisig() {
         require(signatoryDetails[msg.sender] > 0, "Wallet not a member of this multi sig");
         _;
@@ -70,17 +57,15 @@ contract MultiSig {
 
         // An example of a more gas friendly error we would use in production.
         // The others I've left as require statements for readability for this test
-        if(signatoryDetails[msg.sender] != 1) {
+        if(signatoryDetails[msg.sender] != 1)
             revert NotAdminAddress();
-        }
         _;
     }
 
     /// @notice We include these in the constructor to make use of a contract factory
     constructor (SignatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
-
         uint256 listLength = _signatoryList.length;
-        for(uint256 i=0; i < listLength;) {
+        for(uint256 i = 0; i < listLength;) {
             signatoryDetails[_signatoryList[i].signatoryAddress] = _signatoryList[i].signatoryRole;
             signatoryList.push(_signatoryList[i]);
             unchecked {
@@ -93,19 +78,19 @@ contract MultiSig {
         }
     }
 
-    /// @dev Ignore, used for remix testing to send eth to contract on remix blockchain
+    /// @dev Ignore, used for testing mainly
     function deposit () external payable {}
 
     /// @notice Any member can propose a transaction
-    function createTransaction(address _depositAddress, uint256 _amount) 
+    /// @return Returns the id of the newly formed transaction
+    function createTransaction(address _depositAddress, uint256 _depositAmount) 
     external isAddressMemberOfMultisig() returns(uint128) {
-
         TransactionStruct memory newTransaction = TransactionStruct(
             {
                 depositAddress : _depositAddress,
                 signaturesRequired : uint88(numberOfSignaturesRequired),
                 active : true,
-                amount : _amount
+                amount : _depositAmount
             }
         );
 
@@ -120,7 +105,10 @@ contract MultiSig {
         signTransaction(_transactionID, msg.sender);
     }
 
-    /// @notice Single use recovery function, to be used by any address with the password for a one use transaction sign
+    /// @notice **SINGLE USE** recovery function, to be used by any address with the password for a one use transaction sign
+    /// @dev Potentially could be used for WebAuth(FIDO2) purposes as well, may need some tweaks. WebAuth also uses sha256
+    /// @param _signer The address we want to sign the transaction with 
+    /// @param _password The password that was set when we had control of the account
     function signTransactionWithPassword(uint128 _transactionID, address _signer, string calldata _password) 
     external {
         require(generatePasswordHash(_password) == addressPasswordHash[_signer]);
@@ -132,7 +120,6 @@ contract MultiSig {
     /// hits 0 then the txn is is carried out and the ETH is sent to the deposit address.
     function signTransaction(uint128 _transactionID, address _signer)
     internal {
-
         require(transactionMapping[_transactionID].active, "Txn inactive");
         require(!isTransactionSigned[_signer][_transactionID], "Txn already signed by this address");
         isTransactionSigned[_signer][_transactionID] = true;
@@ -150,8 +137,7 @@ contract MultiSig {
 
     /// @notice Used to unsign a transaction, doing the opposite of signTransaction.
     function unsignTransaction(uint128 _transactionID) 
-    external isAddressMemberOfMultisig(){
-
+    external isAddressMemberOfMultisig() {
         require(isTransactionSigned[msg.sender][_transactionID], "Txn not signed by this address");
         isTransactionSigned[msg.sender][_transactionID] = false;
         ++transactionMapping[_transactionID].signaturesRequired;
@@ -166,44 +152,41 @@ contract MultiSig {
     }
 
     /// @notice Used to assign the public backup password hash to an address
+    /// @param _passwordHash the 32 bit hash of the password generated from the sha256 hash function
     function assignPasswordHash(bytes32 _passwordHash) 
     external isAddressMemberOfMultisig() {
         addressPasswordHash[msg.sender] = _passwordHash;
     }
 
     /// @notice Only tier 1 signatories can update this value
+    /// @dev Might make sense to deprecate this and move to the createTransaction function
     function updateNumberOfSignaturesRequired(uint128 _numberOfSignaturesRequired) 
     external isAddressTierOne() {
-        require(_numberOfSignaturesRequired < signatoryList.length+1, "Number provided higher than number of signatories");
+        require(_numberOfSignaturesRequired < signatoryList.length + 1, "Number provided higher than number of signatories");
         assembly {
             sstore(numberOfSignaturesRequired.slot, _numberOfSignaturesRequired)
         }
     }
 
 
-    /// @notice Only tier 1 signatories can add signatories 
+    /// @notice Only tier 1 signatories can add signatories
     function addSignatory(address _signatory, uint96 _role) 
     external isAddressTierOne() {
-
         require(signatoryDetails[_signatory] < 1, "Signatory already added");
-
         SignatoryListStruct memory newSignatory = SignatoryListStruct(
             {
                 signatoryAddress : _signatory,
                 signatoryRole : _role
             }
         );
-
         signatoryDetails[_signatory] = _role;
         signatoryList.push(newSignatory);
-
     }
 
     /// @notice Only tier 1 signatories can remove signatories 
     function removeSignatory(address _signatory)
     external isAddressTierOne() {
-        
-        for(uint i=0; i < signatoryList.length;) {
+        for(uint i = 0; i < signatoryList.length;) {
             if(_signatory == signatoryList[i].signatoryAddress) {
                 signatoryList[i] = signatoryList[signatoryList.length - 1];
                 signatoryList.pop();
@@ -231,11 +214,6 @@ contract MultiSig {
         return signatoryList;
     }
 
-
     // Function to receive Ether. msg.data must be empty
     receive() external payable {}
-
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
-
 }
