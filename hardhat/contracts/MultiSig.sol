@@ -29,7 +29,7 @@ contract MultiSig {
     // Mapping to check if signatory is part of this multisig and what access level is is
     mapping (address => uint256) public signatoryDetails;
     // To store transaction details by a transaction id
-    mapping (uint256 => T) public transactionMapping;
+    mapping (uint256 => TransactionStruct) public transactionMapping;
     // To store which transactions have been signed by which address
     mapping (address => mapping (uint256 => bool)) public isTransactionSigned;
     // To store the hash of the password 
@@ -100,7 +100,7 @@ contract MultiSig {
     function createTransaction(address _depositAddress, uint256 _amount) 
     external isAddressMemberOfMultisig() returns(uint128) {
 
-        T memory newTransaction = T(
+        TransactionStruct memory newTransaction = TransactionStruct(
             {
                 depositAddress : _depositAddress,
                 signaturesRequired : uint88(numberOfSignaturesRequired),
@@ -138,7 +138,7 @@ contract MultiSig {
         isTransactionSigned[_signer][_transactionID] = true;
         --transactionMapping[_transactionID].signaturesRequired;
 
-        T memory localTxn = transactionMapping[_transactionID];
+        TransactionStruct memory localTxn = transactionMapping[_transactionID];
 
         if(localTxn.signaturesRequired == 0) {
             require(address(this).balance > localTxn.amount, "Not enough ETH in multisig");
@@ -165,16 +165,10 @@ contract MultiSig {
         transactionMapping[_transactionID].active = false;
     }
 
-    /// @notice Used to assign the public backup password has to an address
+    /// @notice Used to assign the public backup password hash to an address
     function assignPasswordHash(bytes32 _passwordHash) 
     external isAddressMemberOfMultisig() {
-        address _account = msg.sender;
-        assembly {
-            mstore(0, _account)
-            mstore(32, addressPasswordHash.slot)
-            let hash := keccak256(0, 64)
-            sstore(hash, _passwordHash)
-        }
+        addressPasswordHash[msg.sender] = _passwordHash;
     }
 
     /// @notice Only tier 1 signatories can update this value
@@ -229,13 +223,11 @@ contract MultiSig {
 
     /// @dev View functions
 
-    function generatePasswordHash(string calldata _passwordHash) 
-    public pure returns(bytes32) {
+    function generatePasswordHash(string calldata _passwordHash) public pure returns(bytes32) {
         return sha256(abi.encodePacked(_passwordHash));
     }
 
-    function viewAddresses() 
-    public view returns(SignatoryListStruct[] memory) {
+    function viewAddresses() external view returns(SignatoryListStruct[] memory) {
         return signatoryList;
     }
 

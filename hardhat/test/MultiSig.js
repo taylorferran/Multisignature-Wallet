@@ -199,4 +199,85 @@ describe("Openfort Multisignature wallet contract tests", function () {
 
 
     });
+
+    it("Change number of signers if account level 1", async function () {
+  
+      const [addr1, addr2, addr3] = await ethers.getSigners();
+  
+      const constructorArray = [
+        [addr1.address,1],
+        [addr2.address,2],
+        [addr3.address,3]];
+  
+      const MultiSig = await ethers.getContractFactory("MultiSig");
+  
+      // Deploy contract with addressses shown above and with 2 signatures needed
+      const MultisigContract = await MultiSig.deploy(constructorArray, 2);
+
+      // Check it's 2
+      expect(await MultisigContract.numberOfSignaturesRequired()).to.equal(2);
+
+      // Level 2 account fails to update number of signatures needed
+      await expect (
+        MultisigContract.connect(addr3).updateNumberOfSignaturesRequired(3)
+      ).to.be.revertedWithCustomError(MultisigContract,"NotAdminAddress");
+      
+      await MultisigContract.connect(addr1).updateNumberOfSignaturesRequired(3);
+
+      // Check it's 3
+      expect(await MultisigContract.numberOfSignaturesRequired()).to.equal(3);
+      });
+
+      it("Add a signatory", async function () {
+  
+        const [addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    
+        const constructorArray = [
+          [addr1.address,1],
+          [addr2.address,2],
+          [addr3.address,3]];
+    
+        const MultiSig = await ethers.getContractFactory("MultiSig");
+    
+        // Deploy contract with addressses shown above and with 2 signatures needed
+        const MultisigContract = await MultiSig.deploy(constructorArray, 2);
+
+        // Check signatory isn't apart of multisig
+        expect(await MultisigContract.signatoryDetails(addr4.address)).to.equal(0);
+        
+        // Add signatory 
+        await MultisigContract.connect(addr1).addSignatory(addr4.address,2);
+
+        // Check new signatory is included in mapping with correct role
+        expect(await MultisigContract.signatoryDetails(addr4.address)).to.equal(2);
+
+      });
+      
+      it("Remove a signatory", async function () {
+  
+        const [addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    
+        const constructorArray = [
+          [addr1.address,1],
+          [addr2.address,2],
+          [addr3.address,3]];
+    
+        const MultiSig = await ethers.getContractFactory("MultiSig");
+    
+        // Deploy contract with addressses shown above and with 2 signatures needed
+        const MultisigContract = await MultiSig.deploy(constructorArray, 2);
+
+        // Check signatory is apart of multisig
+        expect(await MultisigContract.signatoryDetails(addr2.address)).to.equal(2);
+        
+        // Remove signatory 
+        await MultisigContract.connect(addr1).removeSignatory(addr2.address);
+
+        // Check new signatory is set to 0 in the details mapping
+        expect(await MultisigContract.signatoryDetails(addr4.address)).to.equal(0);
+
+      });
+      
+    
+
 });

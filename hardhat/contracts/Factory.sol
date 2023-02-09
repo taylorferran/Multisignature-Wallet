@@ -7,8 +7,8 @@ contract Factory {
 
    MultiSig[] public multiSigArray;
 
-   function createNewMultiSig(MultiSig.signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) public {
+   function createNewMultiSig(MultiSig.SignatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) public {
      MultiSig multisig = new MultiSig(_signatoryList, _numberOfSignatures);
-     MultiSigArray.push(multisig);
+     multiSigArray.push(multisig);
    }
 }
