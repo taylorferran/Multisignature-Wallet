@@ -22,6 +22,8 @@ pragma solidity 0.8.17;
         - Sign a transaction using the password for that address (for recovery purposes).
 */
 
+error NotAdminAddress();
+
 contract MultiSig {
 
     // Mapping to check if signatory is part of this multisig and what access level is is
@@ -59,31 +61,40 @@ contract MultiSig {
 
     /// @notice To check if an address is one of the signatories
     modifier isAddressMemberOfMultisig() {
-        require(signatoryDetails[msg.sender] > 0, "Wallet not a member of this multi sig.");
+        require(signatoryDetails[msg.sender] > 0, "Wallet not a member of this multi sig");
         _;
     }
 
     /// @notice To check if the address is tier one (admin)
     modifier isAddressTierOne() {
-        require(signatoryDetails[msg.sender] == 1, "Wallet is not the correct access level.");
+
+        // An example of a more gas friendly error we would use in production.
+        // The others I've left as require statements for readability for this test
+        if(signatoryDetails[msg.sender] != 1) {
+            revert NotAdminAddress();
+        }
         _;
     }
 
     /// @notice We include these in the constructor to make use of a contract factory
     constructor (signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
 
-        for(uint256 i=0; i<_signatoryList.length; ++i) {
+        uint256 listLength = _signatoryList.length;
+        for(uint256 i=0; i < listLength;) {
             signatoryDetails[_signatoryList[i].signatoryAddress] = _signatoryList[i].signatoryRole;
             signatoryList.push(_signatoryList[i]);
+            unchecked {
+                ++i;
+            }
         }
 
-        numberOfSignaturesRequired = _numberOfSignatures;
+        assembly {
+            sstore(numberOfSignaturesRequired.slot, _numberOfSignatures)
+        }
     }
 
     /// @dev Ignore, used for remix testing to send eth to contract on remix blockchain
-    function deposit () public payable {
-
-    }
+    function deposit () public payable {}
 
     /// @notice Any member can propose a transaction
     function createTransaction(address _depositAddress, uint256 _amount) 
@@ -93,8 +104,8 @@ contract MultiSig {
             {
                 depositAddress : _depositAddress,
                 signaturesRequired : uint88(numberOfSignaturesRequired),
-                amount : _amount,
-                active : true
+                active : true,
+                amount : _amount
             }
         );
 
@@ -110,7 +121,7 @@ contract MultiSig {
     }
 
     /// @notice Single use recovery function, to be used by any address with the password for a one use transaction sign
-    function signTransactionWithPassword(uint128 _transactionID, address _signer, string memory _password) 
+    function signTransactionWithPassword(uint128 _transactionID, address _signer, string calldata _password) 
     public {
         require(generatePasswordHash(_password) == addressPasswordHash[_signer]);
         signTransaction(_transactionID, _signer);
@@ -130,6 +141,7 @@ contract MultiSig {
         transactionStruct memory localTxn = transactionMapping[_transactionID];
 
         if(localTxn.signaturesRequired == 0) {
+            require(address(this).balance > localTxn.amount, "Not enough ETH in multisig");
             (bool sent,) = localTxn.depositAddress.call{value: localTxn.amount}("");
             require(sent);
             transactionMapping[_transactionID].active = false;
@@ -149,21 +161,29 @@ contract MultiSig {
     /// Address level needs to be 2 or above to call this function.
     function cancelTransaction(uint128 _transactionID) 
     public isAddressMemberOfMultisig() {
-        require(signatoryDetails[msg.sender] <= 2, "Address does not have the correct access level to cancel transactions");
+        require(signatoryDetails[msg.sender] < 3, "Address does not have the correct access level to cancel transactions");
         transactionMapping[_transactionID].active = false;
     }
 
     /// @notice Used to assign the public backup password has to an address
     function assignPasswordHash(bytes32 _passwordHash) 
     public isAddressMemberOfMultisig() {
-        addressPasswordHash[msg.sender] = _passwordHash;
+        address _account = msg.sender;
+        assembly {
+            mstore(0, _account)
+            mstore(32, addressPasswordHash.slot)
+            let hash := keccak256(0, 64)
+            sstore(hash, _passwordHash)
+        }
     }
 
     /// @notice Only tier 1 signatories can update this value
     function updateNumberOfSignaturesRequired(uint128 _numberOfSignaturesRequired) 
     public isAddressTierOne() {
-        require(_numberOfSignaturesRequired <= signatoryList.length, "Number provided higher than number of signatories ");
-        numberOfSignaturesRequired = _numberOfSignaturesRequired;
+        require(_numberOfSignaturesRequired < signatoryList.length+1, "Number provided higher than number of signatories");
+        assembly {
+            sstore(numberOfSignaturesRequired.slot, _numberOfSignaturesRequired)
+        }
     }
 
 
@@ -189,13 +209,15 @@ contract MultiSig {
     function removeSignatory(address _signatory)
     public isAddressTierOne() {
         
-        require(signatoryDetails[_signatory] > 0, "Signatory not apart of multisig");
-
-        for(uint i=0; i < signatoryList.length; ++i) {
+        uint256 listLength = signatoryList.length;
+        for(uint i=0; i < listLength;) {
             if(_signatory == signatoryList[i].signatoryAddress) {
                 signatoryList[i] = signatoryList[signatoryList.length - 1];
                 signatoryList.pop();
                 signatoryDetails[_signatory] = 0;
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -203,13 +225,12 @@ contract MultiSig {
     /// @notice Only tier 1 signatories can edit roles
     function changeSignatoryRole(address _signatory, uint96 _role)
     public isAddressTierOne() {
-        require(signatoryDetails[_signatory] > 0, "Signatory not apart of multisig");
         signatoryDetails[_signatory] = _role;
     }
 
     /// @dev View functions
 
-    function generatePasswordHash(string memory _passwordHash) public pure returns(bytes32) {
+    function generatePasswordHash(string calldata _passwordHash) public pure returns(bytes32) {
         return sha256(abi.encodePacked(_passwordHash));
     }
 
