@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity 0.8.7;
 
 /*
     @title Multisig wallet for the Openfort code challenge
@@ -29,7 +29,7 @@ contract MultiSig {
     // Mapping to check if signatory is part of this multisig and what access level is is
     mapping (address => uint256) public signatoryDetails;
     // To store transaction details by a transaction id
-    mapping (uint256 => transactionStruct) public transactionMapping;
+    mapping (uint256 => T) public transactionMapping;
     // To store which transactions have been signed by which address
     mapping (address => mapping (uint256 => bool)) public isTransactionSigned;
     // To store the hash of the password 
@@ -42,16 +42,16 @@ contract MultiSig {
 
     // Signatory list, used to keep track of who is on the list for viewing purposes
     // This could be removed if we don't care for the front end. It doesn't affect funciontality.
-    signatoryListStruct[] public signatoryList;
+    SignatoryListStruct[] public signatoryList;
 
     // Data type to store signatory details for the array.
-    struct signatoryListStruct {
+    struct SignatoryListStruct {
         address signatoryAddress;
         uint96 signatoryRole;
     }
 
     // Data type to store transaction details
-    struct transactionStruct {
+    struct TransactionStruct {
         address depositAddress;
         uint88 signaturesRequired;
         bool active;
@@ -77,7 +77,7 @@ contract MultiSig {
     }
 
     /// @notice We include these in the constructor to make use of a contract factory
-    constructor (signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
+    constructor (SignatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
 
         uint256 listLength = _signatoryList.length;
         for(uint256 i=0; i < listLength;) {
@@ -94,13 +94,13 @@ contract MultiSig {
     }
 
     /// @dev Ignore, used for remix testing to send eth to contract on remix blockchain
-    function deposit () public payable {}
+    function deposit () external payable {}
 
     /// @notice Any member can propose a transaction
     function createTransaction(address _depositAddress, uint256 _amount) 
-    public isAddressMemberOfMultisig() returns(uint128) {
+    external isAddressMemberOfMultisig() returns(uint128) {
 
-        transactionStruct memory newTransaction = transactionStruct(
+        T memory newTransaction = T(
             {
                 depositAddress : _depositAddress,
                 signaturesRequired : uint88(numberOfSignaturesRequired),
@@ -116,13 +116,13 @@ contract MultiSig {
 
     /// @notice Sign transaction with normal EOA transaction signing
     function signTransactionWithKey(uint128 _transactionID) 
-    public isAddressMemberOfMultisig() {
+    external isAddressMemberOfMultisig() {
         signTransaction(_transactionID, msg.sender);
     }
 
     /// @notice Single use recovery function, to be used by any address with the password for a one use transaction sign
     function signTransactionWithPassword(uint128 _transactionID, address _signer, string calldata _password) 
-    public {
+    external {
         require(generatePasswordHash(_password) == addressPasswordHash[_signer]);
         signTransaction(_transactionID, _signer);
     }
@@ -138,19 +138,19 @@ contract MultiSig {
         isTransactionSigned[_signer][_transactionID] = true;
         --transactionMapping[_transactionID].signaturesRequired;
 
-        transactionStruct memory localTxn = transactionMapping[_transactionID];
+        T memory localTxn = transactionMapping[_transactionID];
 
         if(localTxn.signaturesRequired == 0) {
             require(address(this).balance > localTxn.amount, "Not enough ETH in multisig");
+            transactionMapping[_transactionID].active = false;
             (bool sent,) = localTxn.depositAddress.call{value: localTxn.amount}("");
             require(sent);
-            transactionMapping[_transactionID].active = false;
         }
     }
 
     /// @notice Used to unsign a transaction, doing the opposite of signTransaction.
     function unsignTransaction(uint128 _transactionID) 
-    public isAddressMemberOfMultisig(){
+    external isAddressMemberOfMultisig(){
 
         require(isTransactionSigned[msg.sender][_transactionID], "Txn not signed by this address");
         isTransactionSigned[msg.sender][_transactionID] = false;
@@ -160,14 +160,14 @@ contract MultiSig {
     /// @notice Sets a transaction to inactive, rendering it unusable.
     /// Address level needs to be 2 or above to call this function.
     function cancelTransaction(uint128 _transactionID) 
-    public isAddressMemberOfMultisig() {
+    external isAddressMemberOfMultisig() {
         require(signatoryDetails[msg.sender] < 3, "Address does not have the correct access level to cancel transactions");
         transactionMapping[_transactionID].active = false;
     }
 
     /// @notice Used to assign the public backup password has to an address
     function assignPasswordHash(bytes32 _passwordHash) 
-    public isAddressMemberOfMultisig() {
+    external isAddressMemberOfMultisig() {
         address _account = msg.sender;
         assembly {
             mstore(0, _account)
@@ -179,7 +179,7 @@ contract MultiSig {
 
     /// @notice Only tier 1 signatories can update this value
     function updateNumberOfSignaturesRequired(uint128 _numberOfSignaturesRequired) 
-    public isAddressTierOne() {
+    external isAddressTierOne() {
         require(_numberOfSignaturesRequired < signatoryList.length+1, "Number provided higher than number of signatories");
         assembly {
             sstore(numberOfSignaturesRequired.slot, _numberOfSignaturesRequired)
@@ -189,11 +189,11 @@ contract MultiSig {
 
     /// @notice Only tier 1 signatories can add signatories 
     function addSignatory(address _signatory, uint96 _role) 
-    public isAddressTierOne() {
+    external isAddressTierOne() {
 
         require(signatoryDetails[_signatory] < 1, "Signatory already added");
 
-        signatoryListStruct memory newSignatory = signatoryListStruct(
+        SignatoryListStruct memory newSignatory = SignatoryListStruct(
             {
                 signatoryAddress : _signatory,
                 signatoryRole : _role
@@ -207,10 +207,9 @@ contract MultiSig {
 
     /// @notice Only tier 1 signatories can remove signatories 
     function removeSignatory(address _signatory)
-    public isAddressTierOne() {
+    external isAddressTierOne() {
         
-        uint256 listLength = signatoryList.length;
-        for(uint i=0; i < listLength;) {
+        for(uint i=0; i < signatoryList.length;) {
             if(_signatory == signatoryList[i].signatoryAddress) {
                 signatoryList[i] = signatoryList[signatoryList.length - 1];
                 signatoryList.pop();
@@ -224,17 +223,19 @@ contract MultiSig {
 
     /// @notice Only tier 1 signatories can edit roles
     function changeSignatoryRole(address _signatory, uint96 _role)
-    public isAddressTierOne() {
+    external isAddressTierOne() {
         signatoryDetails[_signatory] = _role;
     }
 
     /// @dev View functions
 
-    function generatePasswordHash(string calldata _passwordHash) public pure returns(bytes32) {
+    function generatePasswordHash(string calldata _passwordHash) 
+    public pure returns(bytes32) {
         return sha256(abi.encodePacked(_passwordHash));
     }
 
-    function viewAddresses() public view returns(signatoryListStruct[] memory) {
+    function viewAddresses() 
+    public view returns(SignatoryListStruct[] memory) {
         return signatoryList;
     }
 

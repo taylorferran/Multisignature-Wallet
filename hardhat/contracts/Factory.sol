@@ -1,13 +1,13 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity 0.8.17;
+pragma solidity 0.8.7;
 
 import "./MultiSig.sol";
 
 contract Factory {
 
-   MultiSig[] public MultiSigArray;
+   MultiSig[] public multiSigArray;
 
-   function CreateNewMultiSig(MultiSig.signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) public {
+   function createNewMultiSig(MultiSig.signatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) public {
      MultiSig multisig = new MultiSig(_signatoryList, _numberOfSignatures);
      MultiSigArray.push(multisig);
    }
