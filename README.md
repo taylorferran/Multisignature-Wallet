@@ -26,6 +26,8 @@ Deployment in any EVM based blockchain (e.g. Ethereum, Binance Smart Chain, Poly
 I think I covered every point except support for WebAuthn, although it uses a SHA256 hashing algorithm.
 This is the same way I've implemented the wallet recovery functionality, so I believe it wouldn't be a big stretch to extend this for WebAuthn support!
 
+For access control I've just assigned a "level" to each address we add to the wallet, 1 being admin controls, anything higher is custom or could be customised further. The contract can function fine without having an admin account set, leaving it fully decentralised.
+
 For deployment I just created a version which includes 3 test wallets I own. The idea for production would be to use the factory contract to produce as many as we want at scale. 
 
 Deployed and verified here on Goerli:
