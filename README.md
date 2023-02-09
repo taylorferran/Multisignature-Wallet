@@ -44,14 +44,14 @@ Functionality includes:
 - Assign a password hash to an address.
 - Sign a transaction using the password for that address (for recovery purposes).
 
-Main functionality unit tested, would need expanded for edge cases:
-  Openfort Multisignature wallet contract tests
-    ✔ Create a transaction as a signatory (1104ms)
-    ✔ Can't create a transaction if not a signatory (52ms)
-    ✔ Can sign a transaction if a signatory and transaction processes (78ms)
-    ✔ Can unsign a transaction (67ms)
-    ✔ Can cancel a transaction only if level 2 or above (52ms)
-    ✔ Change number of signers if account level 1 (38ms)
-    ✔ Add a signatory (41ms)
-    ✔ Remove a signatory
-    8 passing (1s)
+Main functionality unit tested, would need expanded for edge cases.
+
+Tested included and passing:
+- Create a transaction as a signatory (1104ms)
+- Can't create a transaction if not a signatory (52ms)
+- Can sign a transaction if a signatory and transaction processes (78ms)
+- Can unsign a transaction (67ms)
+- Can cancel a transaction only if level 2 or above (52ms)
+- Change number of signers if account level 1 (38ms)
+- Add a signatory (41ms)
+- Remove a signatory
