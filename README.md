@@ -54,4 +54,4 @@ Main functionality unit tested, would need expanded for edge cases:
     ✔ Change number of signers if account level 1 (38ms)
     ✔ Add a signatory (41ms)
     ✔ Remove a signatory
-  8 passing (1s)
+    8 passing (1s)
