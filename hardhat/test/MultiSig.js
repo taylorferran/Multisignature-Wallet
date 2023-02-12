@@ -274,7 +274,7 @@ describe("Openfort Multisignature wallet contract tests", function () {
         await MultisigContract.connect(addr1).removeSignatory(addr2.address);
 
         // Check new signatory is set to 0 in the details mapping
-        expect(await MultisigContract.signatoryDetails(addr4.address)).to.equal(0);
+        expect(await MultisigContract.signatoryDetails(addr2.address)).to.equal(0);
 
       });
       

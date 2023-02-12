@@ -28,7 +28,7 @@ contract MultiSig {
     uint128 public numberOfTransactions;
 
     /// @notice Signatory list, used to keep track of who is on the list for viewing purposes
-    /// @notice This could be removed if we don't care for the front end. It doesn't affect funciontality.
+    /// @dev This could be removed if we don't care for the front end. It doesn't affect funciontality.
     SignatoryListStruct[] public signatoryList;
 
     /// @notice Data type to store signatory details for the array.
@@ -47,6 +47,11 @@ contract MultiSig {
         uint256 amount;
     }
 
+    /// @notice emitted when we add a signatory to the multisig
+    event AddSignatory(address signatory, uint256 signatoryRole);
+    /// @notice emitted when we remove a signatory from the multisig 
+    event RemoveSignatory(address signatory);
+
     /// @notice To check if an address is one of the signatories
     /// @dev Anything above 0 is a valid multisig address
     modifier isAddressMemberOfMultisig() {
@@ -56,20 +61,22 @@ contract MultiSig {
 
     /// @notice To check if the address is tier one (admin)
     modifier isAddressTierOne() {
-
         // An example of a more gas friendly error we would use in production.
-        // The others I've left as require statements for readability for this test
+        // The others I've left as require statements for readability for this assessment
         if(signatoryDetails[msg.sender] != 1)
             revert NotAdminAddress();
         _;
     }
 
     /// @notice We include these in the constructor to make use of a contract factory
-    constructor (SignatoryListStruct[] memory _signatoryList, uint8 _numberOfSignatures) {
+    /// @param _signatoryList An array of addresses and their respective roles
+    /// @param _numberOfSignatures The amount of signatures needed for a transaction to be processed
+    constructor (SignatoryListStruct[] memory _signatoryList, uint128 _numberOfSignatures) {
         uint256 listLength = _signatoryList.length;
         for(uint256 i = 0; i < listLength;) {
             signatoryDetails[_signatoryList[i].signatoryAddress] = _signatoryList[i].signatoryRole;
             signatoryList.push(_signatoryList[i]);
+            emit AddSignatory(_signatoryList[i].signatoryAddress, _signatoryList[i].signatoryRole);
             unchecked {
                 ++i;
             }
@@ -113,7 +120,7 @@ contract MultiSig {
     /// @param _password The password that was set when we had control of the account
     function signTransactionWithPassword(uint128 _transactionID, address _signer, string calldata _password) 
     external {
-        require(generatePasswordHash(_password) == addressPasswordHash[_signer]);
+        require(generatePasswordHash(_password) == addressPasswordHash[_signer], "Password incorrect");
         signTransaction(_transactionID, _signer);
     }
 
@@ -181,18 +188,21 @@ contract MultiSig {
                 signatoryRole : _role
             }
         );
-        signatoryDetails[_signatory] = _role;
         signatoryList.push(newSignatory);
+        signatoryDetails[_signatory] = _role;
+        emit AddSignatory(_signatory, _role);
     }
 
     /// @notice Only tier 1 signatories can remove signatories 
     function removeSignatory(address _signatory)
     external isAddressTierOne() {
+        require(signatoryDetails[_signatory] != 0, "Signatory not in multisig");
         for(uint i = 0; i < signatoryList.length;) {
             if(_signatory == signatoryList[i].signatoryAddress) {
                 signatoryList[i] = signatoryList[signatoryList.length - 1];
                 signatoryList.pop();
                 signatoryDetails[_signatory] = 0;
+                emit RemoveSignatory(_signatory);
             }
             unchecked {
                 ++i;
