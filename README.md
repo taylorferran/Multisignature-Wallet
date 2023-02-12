@@ -28,10 +28,14 @@ This is the same way I've implemented the wallet recovery functionality, so I be
 
 For access control I've just assigned a "level" to each address we add to the wallet, 1 being admin controls, anything higher is custom or could be customised further. The contract can function fine without having an admin account set, leaving it fully decentralised.
 
-For deployment I just created a version which includes 3 test wallets I own. The idea for production would be to use the factory contract to produce as many as we want at scale. 
+For deployment I just created a version which includes 3 test wallets I own. The idea for production would be to use the factory contract to produce as many as we want at scale.
+
+I've added some events and hooked it up so a graph deployment, as I think this could be a better way of storing the list of addresses for gas savings.
 
 Deployed and verified here on Goerli:
-https://goerli.etherscan.io/address/0xB124A9ed0a4f451712c11ae8285667Af76a16341#code
+https://goerli.etherscan.io/address/0x72234D530C7dC5888776a2BD812775D2Fd02a167
+
+Graph: https://thegraph.com/hosted-service/subgraph/taylorferran/openfort-multisig
 
 Functionality includes:
 - Defining signatories, signatory roles and inital amount of signatures required. Done on contract creation.
