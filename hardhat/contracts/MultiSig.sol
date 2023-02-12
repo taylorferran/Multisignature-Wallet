@@ -16,7 +16,7 @@ contract MultiSig {
     /// @notice Mapping to check if signatory is part of this multisig and what access level is is
     mapping (address => uint256) public signatoryDetails;
     /// @notice To store transaction details by a transaction id
-    mapping (uint256 => TransactionStruct) public transactionMapping;
+    mapping (uint128 => TransactionStruct) public transactionMapping;
     /// @notice To store which transactions have been signed by which address
     mapping (address => mapping (uint256 => bool)) public isTransactionSigned;
     /// @notice To store the hash of the password 
@@ -93,7 +93,7 @@ contract MultiSig {
     /// @notice Any member can propose a transaction
     /// @return Returns the id of the newly formed transaction
     function createTransaction(address _depositAddress, uint256 _depositAmount) 
-    external isAddressMemberOfMultisig() returns(uint128) {
+    public isAddressMemberOfMultisig() returns(uint128) {
         TransactionStruct memory newTransaction = TransactionStruct(
             {
                 depositAddress : _depositAddress,
@@ -106,6 +106,13 @@ contract MultiSig {
         ++numberOfTransactions;
         transactionMapping[numberOfTransactions] = newTransaction;
         return(numberOfTransactions);
+    }
+
+    /// @notice If we lose access to all of the accounts on the multisig, we can create a transaction to get funds out
+    function createTransactionWithPassword(address _depositAddress, uint256 _depositAmount, address _signer, string calldata _password)
+    external {
+        require(generatePasswordHash(_password) == addressPasswordHash[_signer], "Password incorrect");
+        createTransaction(_depositAddress, _depositAmount);
     }
 
     /// @notice Sign transaction with normal EOA transaction signing
