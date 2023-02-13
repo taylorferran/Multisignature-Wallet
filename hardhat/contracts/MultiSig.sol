@@ -179,9 +179,7 @@ contract MultiSig {
     function updateNumberOfSignaturesRequired(uint128 _numberOfSignaturesRequired) 
     external isAddressTierOne() {
         require(_numberOfSignaturesRequired < signatoryList.length + 1, "Number provided higher than number of signatories");
-        assembly {
-            sstore(numberOfSignaturesRequired.slot, _numberOfSignaturesRequired)
-        }
+        numberOfSignaturesRequired = _numberOfSignaturesRequired;
     }
 
 
