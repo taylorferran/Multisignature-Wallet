@@ -10,6 +10,15 @@ pragma solidity 0.8.7;
 /// @notice Custom error for when non admins try to call admin functions
 /// @dev In production we would include far more of these for gas purposes
 error NotAdminAddress();
+error NotMultisigMember();
+error PasswordIncorrect();
+error SignatoryAlreadyAdded();
+error NumberOfSignaturesTooHigh();
+error SignatoryIncorrectAccessLevel();
+error TransactionNotSigned();
+error TransactionSigned();
+error TransactionInactive();
+error NotEnoughETH();
 
 contract MultiSig {
 
@@ -55,7 +64,8 @@ contract MultiSig {
     /// @notice To check if an address is one of the signatories
     /// @dev Anything above 0 is a valid multisig address
     modifier isAddressMemberOfMultisig() {
-        require(signatoryDetails[msg.sender] > 0, "Wallet not a member of this multi sig");
+        if(signatoryDetails[msg.sender] == 0)
+            revert NotMultisigMember();
         _;
     }
 
@@ -111,7 +121,8 @@ contract MultiSig {
     /// @notice If we lose access to all of the accounts on the multisig, we can create a transaction to get funds out
     function createTransactionWithPassword(address _depositAddress, uint256 _depositAmount, address _signer, string calldata _password)
     external {
-        require(generatePasswordHash(_password) == addressPasswordHash[_signer], "Password incorrect");
+        if(generatePasswordHash(_password) == addressPasswordHash[_signer])
+            revert PasswordIncorrect();
         createTransaction(_depositAddress, _depositAmount);
     }
 
@@ -127,7 +138,8 @@ contract MultiSig {
     /// @param _password The password that was set when we had control of the account
     function signTransactionWithPassword(uint128 _transactionID, address _signer, string calldata _password) 
     external {
-        require(generatePasswordHash(_password) == addressPasswordHash[_signer], "Password incorrect");
+        if(generatePasswordHash(_password) == addressPasswordHash[_signer])
+            revert PasswordIncorrect();
         signTransaction(_transactionID, _signer);
     }
 
@@ -136,15 +148,18 @@ contract MultiSig {
     /// hits 0 then the txn is is carried out and the ETH is sent to the deposit address.
     function signTransaction(uint128 _transactionID, address _signer)
     internal {
-        require(transactionMapping[_transactionID].active, "Txn inactive");
-        require(!isTransactionSigned[_signer][_transactionID], "Txn already signed by this address");
+        if(!transactionMapping[_transactionID].active)
+            revert TransactionInactive();
+        if(isTransactionSigned[_signer][_transactionID])
+            revert TransactionSigned();
         isTransactionSigned[_signer][_transactionID] = true;
         --transactionMapping[_transactionID].signaturesRequired;
 
         TransactionStruct memory localTxn = transactionMapping[_transactionID];
 
         if(localTxn.signaturesRequired == 0) {
-            require(address(this).balance > localTxn.amount, "Not enough ETH in multisig");
+            if(address(this).balance < localTxn.amount)
+                revert NotEnoughETH();
             transactionMapping[_transactionID].active = false;
             (bool sent,) = localTxn.depositAddress.call{value: localTxn.amount}("");
             require(sent);
@@ -154,7 +169,8 @@ contract MultiSig {
     /// @notice Used to unsign a transaction, doing the opposite of signTransaction.
     function unsignTransaction(uint128 _transactionID) 
     external isAddressMemberOfMultisig() {
-        require(isTransactionSigned[msg.sender][_transactionID], "Txn not signed by this address");
+        if(!isTransactionSigned[msg.sender][_transactionID])
+            revert TransactionNotSigned();
         isTransactionSigned[msg.sender][_transactionID] = false;
         ++transactionMapping[_transactionID].signaturesRequired;
     }
@@ -163,7 +179,8 @@ contract MultiSig {
     /// Address level needs to be 2 or above to call this function.
     function cancelTransaction(uint128 _transactionID) 
     external isAddressMemberOfMultisig() {
-        require(signatoryDetails[msg.sender] < 3, "Address does not have the correct access level to cancel transactions");
+        if(signatoryDetails[msg.sender] > 2)
+            revert SignatoryIncorrectAccessLevel();
         transactionMapping[_transactionID].active = false;
     }
 
@@ -178,15 +195,16 @@ contract MultiSig {
     /// @dev Might make sense to deprecate this and move to the createTransaction function
     function updateNumberOfSignaturesRequired(uint128 _numberOfSignaturesRequired) 
     external isAddressTierOne() {
-        require(_numberOfSignaturesRequired < signatoryList.length + 1, "Number provided higher than number of signatories");
+        if(_numberOfSignaturesRequired > signatoryList.length + 1)
+            revert NumberOfSignaturesTooHigh();
         numberOfSignaturesRequired = _numberOfSignaturesRequired;
     }
-
 
     /// @notice Only tier 1 signatories can add signatories
     function addSignatory(address _signatory, uint96 _role) 
     external isAddressTierOne() {
-        require(signatoryDetails[_signatory] < 1, "Signatory already added");
+        if(signatoryDetails[_signatory] > 0)
+            revert SignatoryAlreadyAdded();
         SignatoryListStruct memory newSignatory = SignatoryListStruct(
             {
                 signatoryAddress : _signatory,
@@ -201,7 +219,6 @@ contract MultiSig {
     /// @notice Only tier 1 signatories can remove signatories 
     function removeSignatory(address _signatory)
     external isAddressTierOne() {
-        require(signatoryDetails[_signatory] != 0, "Signatory not in multisig");
         for(uint i = 0; i < signatoryList.length;) {
             if(_signatory == signatoryList[i].signatoryAddress) {
                 signatoryList[i] = signatoryList[signatoryList.length - 1];
