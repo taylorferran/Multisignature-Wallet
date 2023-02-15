@@ -48,7 +48,7 @@ describe("Openfort Multisignature wallet contract tests", function () {
     // Transaction should revert as address 4 is not included in the multisig
     await expect (
       MultisigContract.connect(addr4).createTransaction(addr2.address, 1)
-    ).to.be.revertedWith("Wallet not a member of this multi sig");
+    ).to.be.revertedWithCustomError(MultiSig, "NotMultisigMember");
 
     // Check transaction created
     expect(await MultisigContract.numberOfTransactions()).to.equal(0);
@@ -184,7 +184,7 @@ describe("Openfort Multisignature wallet contract tests", function () {
       // Level 3 account fails to cancel transaction 
       await expect (
         MultisigContract.connect(addr3).cancelTransaction(1)
-      ).to.be.revertedWith("Address does not have the correct access level to cancel transactions");
+      ).to.be.revertedWithCustomError(MultisigContract,"SignatoryIncorrectAccessLevel");
 
       // Check it's still active 
       transaction = await MultisigContract.transactionMapping(1);
@@ -277,7 +277,5 @@ describe("Openfort Multisignature wallet contract tests", function () {
         expect(await MultisigContract.signatoryDetails(addr2.address)).to.equal(0);
 
       });
-      
-    
 
 });
