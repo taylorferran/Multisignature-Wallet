@@ -19,6 +19,7 @@ error TransactionNotSigned();
 error TransactionSigned();
 error TransactionInactive();
 error NotEnoughETH();
+error IncorrectPasswordLength();
 
 contract MultiSig {
 
@@ -188,6 +189,8 @@ contract MultiSig {
     /// @param _passwordHash the 32 bit hash of the password generated from the sha256 hash function
     function assignPasswordHash(bytes32 _passwordHash) 
     external isAddressMemberOfMultisig() {
+        if(_passwordHash.length != 32)
+            revert IncorrectPasswordLength();
         addressPasswordHash[msg.sender] = _passwordHash;
     }
 
