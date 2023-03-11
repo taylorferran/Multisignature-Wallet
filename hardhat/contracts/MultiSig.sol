@@ -7,21 +7,9 @@ pragma solidity 0.8.7;
     @notice Made for a technical challenge, not released in production
 **/ 
 
-/// @notice Custom error for when non admins try to call admin functions
-/// @dev In production we would include far more of these for gas purposes
-error NotAdminAddress();
-error NotMultisigMember();
-error PasswordIncorrect();
-error SignatoryAlreadyAdded();
-error NumberOfSignaturesTooHigh();
-error SignatoryIncorrectAccessLevel();
-error TransactionNotSigned();
-error TransactionSigned();
-error TransactionInactive();
-error NotEnoughETH();
-error IncorrectPasswordLength();
+import "./interfaces/IMultisig.sol";
 
-contract MultiSig {
+contract MultiSig is IMultisig {
 
     /// @notice Mapping to check if signatory is part of this multisig and what access level is is
     mapping (address => uint256) public signatoryDetails;
