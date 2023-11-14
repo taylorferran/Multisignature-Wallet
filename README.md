@@ -1,6 +1,6 @@
 # Purpose
 
-It’s an opportunity to prove you can build well designed and scalable backend architectures. We also want to gauge your knowledge of the Ethereum blockchain. The assessment is based on real work you’d be doing if you joined Openfort.
+Build a well designed and scalable backend architecture, in the form of a multisig wallet.
 
 ## The assessment
 
